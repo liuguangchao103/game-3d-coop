@@ -1,0 +1,15 @@
+{
+  "name": "game-3d-coop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "3D web game repository with automated Git/GitHub version management.",
+  "scripts": {
+    "typecheck": "echo \"No typecheck configured yet\"",
+    "test": "echo \"No tests configured yet\"",
+    "build": "echo \"No build configured yet\"",
+    "vcs:init": "bash scripts/vcs/bootstrap.sh --owner liuguangchao103 --repo game-3d-coop --visibility private",
+    "vcs:tag": "bash scripts/vcs/tag-milestone.sh",
+    "vcs:rollback": "bash scripts/vcs/rollback.sh",
+    "vcs:protect": "bash scripts/vcs/configure-branch-protection.sh --owner liuguangchao103 --repo game-3d-coop"
+  }
+}

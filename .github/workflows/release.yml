@@ -1,0 +1,40 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build commit summary
+        id: summary
+        run: |
+          PREVIOUS_TAG="$(git tag --sort=-version:refname | sed -n '2p')"
+          {
+            echo "body<<EOF"
+            echo "## Commit Summary"
+            if [ -n "${PREVIOUS_TAG}" ]; then
+              git log --pretty=format:'- %s (%h)' "${PREVIOUS_TAG}..${GITHUB_REF_NAME}"
+            else
+              git log --pretty=format:'- %s (%h)' "${GITHUB_REF_NAME}"
+            fi
+            echo
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          body: ${{ steps.summary.outputs.body }}
