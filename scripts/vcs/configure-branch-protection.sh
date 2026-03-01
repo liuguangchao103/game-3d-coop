@@ -60,11 +60,13 @@ main() {
     exit 1
   fi
 
-  gh api \
+  local output=""
+  if ! output="$(gh api \
     --method PUT \
     -H "Accept: application/vnd.github+json" \
     "repos/${OWNER}/${REPO}/branches/main/protection" \
-    --input - <<'JSON'
+    --input - \
+    2>&1 <<'JSON'
 {
   "required_status_checks": {
     "strict": true,
@@ -82,6 +84,15 @@ main() {
   "allow_deletions": false
 }
 JSON
+)"; then
+    if echo "$output" | grep -q "Upgrade to GitHub Pro"; then
+      echo "Error: branch protection for private repositories is not available on the current GitHub plan." >&2
+      echo "Action: make the repository public or upgrade the account plan, then rerun npm run vcs:protect." >&2
+    else
+      echo "$output" >&2
+    fi
+    exit 1
+  fi
 
   echo "Branch protection configured for ${OWNER}/${REPO}:main"
 }
