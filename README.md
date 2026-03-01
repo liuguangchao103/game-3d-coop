@@ -1,41 +1,76 @@
 # game-3d-coop
 
-Git/GitHub automation scaffold for a 3D web game project.
+Two-player online 3D web game prototype (`Shadow Breach`) with a Three.js client and authoritative Node.js WebSocket server.
 
-## Branch strategy
+## Quick Start
 
-- `main`: protected branch, only merge via pull request.
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Start server:
+
+```bash
+npm run dev:server
+```
+
+3. Start client (new terminal):
+
+```bash
+npm run dev:client
+```
+
+4. Open `http://localhost:5173` in two browser tabs and test co-op flow:
+- Tab A: create room
+- Tab B: enter room code and join
+- Both click ready
+- Use `W/A/S/D` to move
+
+## Repo Structure
+
+- `client/`: Three.js web client + lobby/HUD UI
+- `server/`: Express + WebSocket authoritative room server
+- `shared/`: protocol types, constants, zod validation schema
+
+## Branch Strategy
+
+- `main`: protected branch, merge by PR.
 - `feature/<scope>`: feature development.
-- `hotfix/<scope>`: production fix branch.
-- Recommended merge command: `git merge --no-ff`.
+- `hotfix/<scope>`: urgent fixes.
+- Recommended merge method: `git merge --no-ff`.
 
-## Conventional commits
+## Versioning
 
-Use one of the following commit types:
+- Milestone tags use SemVer (`v0.x.y` for MVP stage).
+- Create milestone tag:
 
-- `feat`
-- `fix`
-- `refactor`
-- `chore`
-- `docs`
-- `test`
+```bash
+npm run vcs:tag -- v0.1.0 "lobby online"
+```
 
-## Versioning rules
+- Create rollback branch from tag:
 
-- Milestone tags for MVP must match `v0.x.y`.
-- Tag command:
-  - `npm run vcs:tag -- v0.1.0 "lobby online"`
-- Rollback branch command:
-  - `npm run vcs:rollback -- v0.1.0`
+```bash
+npm run vcs:rollback -- v0.1.0
+```
 
-## Commands
+## VCS Automation Commands
 
-- Initialize git + GitHub remote:
-  - `npm run vcs:init`
-- Configure main branch protection:
-  - `npm run vcs:protect`
+- Initialize git + remote:
 
-## Milestone plan
+```bash
+npm run vcs:init
+```
+
+- Configure branch protection:
+
+```bash
+npm run vcs:protect
+```
+
+## Milestone Targets
 
 - `v0.1.0`: lobby/join/sync movement playable
 - `v0.2.0`: combat + enemies + stage loop

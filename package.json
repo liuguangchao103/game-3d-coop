@@ -2,12 +2,20 @@
   "name": "game-3d-coop",
   "version": "0.1.0",
   "private": true,
-  "description": "3D web game repository with automated Git/GitHub version management.",
+  "description": "2-player co-op 3D web game with authoritative WebSocket server.",
+  "workspaces": [
+    "client",
+    "server",
+    "shared"
+  ],
   "scripts": {
-    "typecheck": "echo \"No typecheck configured yet\"",
-    "test": "echo \"No tests configured yet\"",
-    "build": "echo \"No build configured yet\"",
-    "vcs:init": "bash scripts/vcs/bootstrap.sh --owner liuguangchao103 --repo game-3d-coop --visibility private",
+    "dev": "npm run dev --workspace @game/client",
+    "dev:client": "npm run dev --workspace @game/client",
+    "dev:server": "npm run dev --workspace @game/server",
+    "typecheck": "npm run typecheck --workspace @game/shared && npm run typecheck --workspace @game/server && npm run typecheck --workspace @game/client",
+    "test": "npm run test --workspace @game/shared && npm run test --workspace @game/server && npm run test --workspace @game/client",
+    "build": "npm run build --workspace @game/shared && npm run build --workspace @game/server && npm run build --workspace @game/client",
+    "vcs:init": "bash scripts/vcs/bootstrap.sh --owner liuguangchao103 --repo game-3d-coop --visibility public",
     "vcs:tag": "bash scripts/vcs/tag-milestone.sh",
     "vcs:rollback": "bash scripts/vcs/rollback.sh",
     "vcs:protect": "bash scripts/vcs/configure-branch-protection.sh --owner liuguangchao103 --repo game-3d-coop"

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shadow Breach</title>
+  </head>
+  <body>
+    <div id="app">
+      <aside class="control-panel" aria-label="Lobby and controls">
+        <div class="brand-block">
+          <p class="eyebrow">CO-OP EXTRACTION</p>
+          <h1>Shadow Breach</h1>
+          <p class="subtitle">Dark-zone two-player tactical trial</p>
+        </div>
+
+        <div class="panel-card">
+          <label for="playerName">代号</label>
+          <input id="playerName" maxlength="20" placeholder="输入你的代号" value="Operator" />
+
+          <div class="button-row">
+            <button id="createRoomBtn" class="btn accent">创建房间</button>
+            <button id="joinRoomBtn" class="btn">加入房间</button>
+          </div>
+
+          <label for="roomCodeInput">房间码</label>
+          <input id="roomCodeInput" maxlength="8" placeholder="例如 AB12CD" />
+
+          <div class="button-row">
+            <button id="readyBtn" class="btn ready" disabled>准备</button>
+          </div>
+        </div>
+
+        <div class="panel-card status-list" id="statusList">
+          <div><span>连接</span><strong id="connStatus">Disconnected</strong></div>
+          <div><span>房间</span><strong id="roomCodeStatus">-</strong></div>
+          <div><span>阶段</span><strong id="phaseStatus">lobby</strong></div>
+          <div><span>计时</span><strong id="timerStatus">18:00</strong></div>
+        </div>
+
+        <div class="panel-card">
+          <p class="panel-title">队伍</p>
+          <ul id="playerList" class="player-list"></ul>
+        </div>
+
+        <div class="panel-card">
+          <p class="panel-title">系统日志</p>
+          <pre id="eventLog" class="event-log"></pre>
+        </div>
+      </aside>
+
+      <main class="viewport-shell">
+        <canvas id="gameCanvas"></canvas>
+        <div class="center-overlay">
+          <p>W/A/S/D 控制移动 · 双人 Ready 自动开局</p>
+        </div>
+        <div id="touchPad" class="touch-pad" aria-label="Touch controls">
+          <button data-dir="up">▲</button>
+          <button data-dir="left">◀</button>
+          <button data-dir="right">▶</button>
+          <button data-dir="down">▼</button>
+        </div>
+      </main>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
