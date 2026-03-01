@@ -76,6 +76,31 @@ ensure_repo() {
   fi
 }
 
+ensure_gitignore() {
+  if [ -f .gitignore ]; then
+    return
+  fi
+
+  cat > .gitignore <<'EOF'
+node_modules/
+dist/
+build/
+coverage/
+.cache/
+.turbo/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.env
+.env.*
+!.env.example
+.DS_Store
+EOF
+  echo "Created default .gitignore."
+}
+
 ensure_baseline_commit() {
   if ! git rev-parse --verify HEAD >/dev/null 2>&1; then
     git add -A
@@ -123,6 +148,7 @@ main() {
   require_cmd gh
   parse_args "$@"
   ensure_repo
+  ensure_gitignore
   ensure_baseline_commit
   bind_or_create_remote
   configure_local_defaults
