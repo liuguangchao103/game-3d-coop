@@ -26,7 +26,15 @@ npm run dev:client
 - Tab A: create room
 - Tab B: enter room code and join
 - Both click ready
-- Use `W/A/S/D` to move
+- Use `W/A/S/D` to move, press `E` near highlighted objective pillars to activate nodes
+
+## Current Play Loop (v0.1+ detail pass)
+
+- Two players in one room
+- Both players ready -> run starts
+- Three objective nodes spawn (one active at a time)
+- Reach active node and hold `E` to activate
+- Activate all nodes before timer reaches zero
 
 ## Repo Structure
 

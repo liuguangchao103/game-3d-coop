@@ -167,6 +167,14 @@ body {
   font-size: 13px;
 }
 
+.status-ok {
+  color: #80e7a8;
+}
+
+.status-bad {
+  color: #ff7d87;
+}
+
 .panel-title {
   margin: 0 0 10px;
   color: var(--text-muted);
@@ -220,9 +228,74 @@ body {
   height: 100%;
 }
 
+.event-banner {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  padding: 9px 18px;
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  border: 1px solid rgba(158, 183, 208, 0.45);
+  background: rgba(8, 13, 20, 0.84);
+  color: #d9e7f6;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.event-banner.is-hidden {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-6px);
+}
+
+.event-banner.tone-success {
+  border-color: rgba(135, 229, 170, 0.6);
+  color: #9bf1c0;
+}
+
+.event-banner.tone-danger {
+  border-color: rgba(255, 127, 137, 0.65);
+  color: #ffb7bd;
+}
+
+.event-banner.tone-neutral {
+  border-color: rgba(116, 161, 209, 0.6);
+}
+
+.crosshair {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.crosshair::before,
+.crosshair::after {
+  content: "";
+  position: absolute;
+  background: rgba(198, 218, 240, 0.8);
+}
+
+.crosshair::before {
+  left: 7px;
+  top: 0;
+  width: 2px;
+  height: 16px;
+}
+
+.crosshair::after {
+  left: 0;
+  top: 7px;
+  width: 16px;
+  height: 2px;
+}
+
 .center-overlay {
   position: absolute;
-  top: 14px;
+  top: 56px;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(6, 10, 17, 0.72);
@@ -232,6 +305,25 @@ body {
   font-size: 12px;
   color: #c3d4e7;
   pointer-events: none;
+}
+
+.timer-warning {
+  color: #ffcc7d;
+}
+
+.timer-danger {
+  color: #ff7a83;
+  animation: pulse-danger 1s ease-in-out infinite;
+}
+
+@keyframes pulse-danger {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
 }
 
 .touch-pad {
@@ -250,6 +342,11 @@ body {
   color: var(--text-main);
   border-radius: 12px;
   font-size: 20px;
+}
+
+.touch-pad button.is-active {
+  border-color: rgba(255, 179, 99, 0.8);
+  background: rgba(31, 41, 59, 0.9);
 }
 
 .touch-pad button[data-dir="up"] {
@@ -272,6 +369,29 @@ body {
   grid-row: 3;
 }
 
+.touch-actions {
+  position: absolute;
+  left: 14px;
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  display: none;
+}
+
+.touch-interact {
+  min-width: 58px;
+  height: 58px;
+  border-radius: 14px;
+  border: 1px solid rgba(191, 219, 151, 0.56);
+  background: rgba(17, 28, 21, 0.82);
+  color: #d3f4ba;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.touch-interact.is-active {
+  border-color: rgba(205, 237, 144, 0.9);
+  background: rgba(37, 62, 34, 0.92);
+}
+
 @media (max-width: 1080px) {
   #app {
     grid-template-columns: 1fr;
@@ -292,5 +412,9 @@ body {
 @media (pointer: coarse) {
   .touch-pad {
     display: grid;
+  }
+
+  .touch-actions {
+    display: block;
   }
 }

@@ -24,9 +24,31 @@ export function startGameLoop(roomManager: RoomManager): NodeJS.Timeout {
         continue;
       }
 
-      stepRoom(room, dt);
+      const events = stepRoom(room, dt);
       const snapshot = serializeS2CMessage(buildSnapshot(room));
       broadcast(roomManager, room.code, snapshot);
+
+      for (const event of events) {
+        const eventPayload = serializeS2CMessage({
+          t: "event",
+          kind: event.kind,
+          payload: event.payload
+        });
+        broadcast(roomManager, room.code, eventPayload);
+      }
+
+      const roomEndedByEvents = events.some((event) => event.kind === "victory");
+      if (roomEndedByEvents) {
+        const statePayload = serializeS2CMessage({
+          t: "room.state",
+          phase: "ended",
+          timeLeft: room.timeLeft,
+          stage: room.stage,
+          seed: room.seed
+        });
+        broadcast(roomManager, room.code, statePayload);
+        continue;
+      }
 
       if (room.timeLeft <= 0) {
         room.phase = "ended";

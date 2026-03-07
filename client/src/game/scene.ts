@@ -2,6 +2,7 @@ import {
   AmbientLight,
   BoxGeometry,
   Color,
+  CylinderGeometry,
   DirectionalLight,
   Fog,
   GridHelper,
@@ -14,14 +15,44 @@ import {
   WebGLRenderer
 } from "three";
 
-import type { PlayerView } from "@game/shared";
+import type { ObjectiveView, PlayerView } from "@game/shared";
 
 interface PlayerEntity {
   mesh: Mesh;
+  material: MeshStandardMaterial;
   target: Vector3;
+  targetYaw: number;
+}
+
+interface ObjectiveEntity {
+  mesh: Mesh;
+  material: MeshStandardMaterial;
+  state: ObjectiveView["state"];
+  pulseSeed: number;
 }
 
 const CAMERA_OFFSET = new Vector3(0, 14, 16);
+
+function normalizeAngle(value: number): number {
+  let angle = value;
+  while (angle > Math.PI) {
+    angle -= Math.PI * 2;
+  }
+  while (angle < -Math.PI) {
+    angle += Math.PI * 2;
+  }
+  return angle;
+}
+
+function objectivePalette(state: ObjectiveView["state"]): { color: string; emissive: string; emissiveIntensity: number } {
+  if (state === "done") {
+    return { color: "#66d18f", emissive: "#2f9d62", emissiveIntensity: 0.35 };
+  }
+  if (state === "active") {
+    return { color: "#ffb357", emissive: "#d9892f", emissiveIntensity: 0.9 };
+  }
+  return { color: "#4a8fc8", emissive: "#2a5d87", emissiveIntensity: 0.25 };
+}
 
 export class GameScene {
   private readonly renderer: WebGLRenderer;
@@ -32,7 +63,11 @@ export class GameScene {
 
   private readonly entities = new Map<string, PlayerEntity>();
 
+  private readonly objectiveEntities = new Map<string, ObjectiveEntity>();
+
   private localPlayerId: string | undefined;
+
+  private elapsed = 0;
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     this.renderer = new WebGLRenderer({
@@ -58,6 +93,12 @@ export class GameScene {
 
   setLocalPlayer(playerId: string | undefined): void {
     this.localPlayerId = playerId;
+
+    for (const [id, entity] of this.entities.entries()) {
+      entity.material.emissive.set(id === this.localPlayerId ? "#4a6784" : "#1d2936");
+      entity.material.emissiveIntensity = id === this.localPlayerId ? 0.5 : 0.2;
+      entity.mesh.scale.setScalar(id === this.localPlayerId ? 1.06 : 1);
+    }
   }
 
   syncPlayers(players: PlayerView[]): void {
@@ -69,25 +110,32 @@ export class GameScene {
       const existing = this.entities.get(player.id);
       if (existing) {
         existing.target.set(player.x, player.y + 0.6, player.z);
+        existing.targetYaw = player.yaw;
         continue;
       }
 
       const body = new BoxGeometry(0.9, 1.2, 0.9);
       const material = new MeshStandardMaterial({
         color: player.color === "amber" ? "#ff9d3f" : "#3fb9ff",
-        metalness: 0.2,
-        roughness: 0.55
+        metalness: 0.25,
+        roughness: 0.52,
+        emissive: player.id === this.localPlayerId ? "#4a6784" : "#1d2936",
+        emissiveIntensity: player.id === this.localPlayerId ? 0.5 : 0.2
       });
 
       const mesh = new Mesh(body, material);
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       mesh.position.set(player.x, player.y + 0.6, player.z);
+      mesh.rotation.y = player.yaw;
+      mesh.scale.setScalar(player.id === this.localPlayerId ? 1.06 : 1);
 
       this.scene.add(mesh);
       this.entities.set(player.id, {
         mesh,
-        target: new Vector3(player.x, player.y + 0.6, player.z)
+        material,
+        target: new Vector3(player.x, player.y + 0.6, player.z),
+        targetYaw: player.yaw
       });
     }
 
@@ -95,25 +143,98 @@ export class GameScene {
       if (!presentIds.has(id)) {
         this.scene.remove(entity.mesh);
         entity.mesh.geometry.dispose();
-        (entity.mesh.material as MeshStandardMaterial).dispose();
+        entity.material.dispose();
         this.entities.delete(id);
       }
     }
   }
 
+  syncObjectives(objectives: ObjectiveView[]): void {
+    const presentIds = new Set<string>();
+
+    for (const objective of objectives) {
+      presentIds.add(objective.id);
+
+      const existing = this.objectiveEntities.get(objective.id);
+      if (existing) {
+        existing.mesh.position.set(objective.x, 1.2, objective.z);
+        if (existing.state !== objective.state) {
+          existing.state = objective.state;
+          const style = objectivePalette(objective.state);
+          existing.material.color.set(style.color);
+          existing.material.emissive.set(style.emissive);
+          existing.material.emissiveIntensity = style.emissiveIntensity;
+        }
+        continue;
+      }
+
+      const style = objectivePalette(objective.state);
+      const material = new MeshStandardMaterial({
+        color: style.color,
+        emissive: style.emissive,
+        emissiveIntensity: style.emissiveIntensity,
+        roughness: 0.35,
+        metalness: 0.45
+      });
+
+      const mesh = new Mesh(new CylinderGeometry(0.6, 0.85, 2.4, 14), material);
+      mesh.position.set(objective.x, 1.2, objective.z);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      this.scene.add(mesh);
+
+      this.objectiveEntities.set(objective.id, {
+        mesh,
+        material,
+        state: objective.state,
+        pulseSeed: Math.random() * Math.PI * 2
+      });
+    }
+
+    for (const [id, entity] of this.objectiveEntities.entries()) {
+      if (!presentIds.has(id)) {
+        this.scene.remove(entity.mesh);
+        entity.mesh.geometry.dispose();
+        entity.material.dispose();
+        this.objectiveEntities.delete(id);
+      }
+    }
+  }
+
   update(dt: number): void {
+    this.elapsed += dt;
     const alpha = Math.min(1, dt * 12);
 
     for (const entity of this.entities.values()) {
       entity.mesh.position.lerp(entity.target, alpha);
+      const deltaYaw = normalizeAngle(entity.targetYaw - entity.mesh.rotation.y);
+      entity.mesh.rotation.y += deltaYaw * Math.min(1, dt * 9);
+    }
+
+    for (const objective of this.objectiveEntities.values()) {
+      objective.mesh.rotation.y += dt * 0.28;
+
+      if (objective.state === "active") {
+        const pulse = 1 + Math.sin(this.elapsed * 5 + objective.pulseSeed) * 0.07;
+        objective.mesh.scale.set(1, pulse, 1);
+        objective.material.emissiveIntensity = 0.75 + Math.sin(this.elapsed * 8 + objective.pulseSeed) * 0.22;
+      } else {
+        objective.mesh.scale.set(1, 1, 1);
+      }
     }
 
     if (this.localPlayerId) {
       const local = this.entities.get(this.localPlayerId);
       if (local) {
-        const desiredCamera = local.mesh.position.clone().add(CAMERA_OFFSET);
+        const speedHint = local.mesh.position.distanceTo(local.target) / Math.max(dt, 0.001);
+        const moveFactor = Math.min(1, speedHint / 4);
+        const dynamicOffset = CAMERA_OFFSET.clone();
+        dynamicOffset.y += moveFactor * 0.8;
+        dynamicOffset.z -= moveFactor * 1.3;
+
+        const desiredCamera = local.mesh.position.clone().add(dynamicOffset);
         this.camera.position.lerp(desiredCamera, Math.min(1, dt * 6));
-        this.camera.lookAt(local.mesh.position);
+        this.camera.lookAt(local.mesh.position.x, local.mesh.position.y + 0.3, local.mesh.position.z);
       }
     }
   }

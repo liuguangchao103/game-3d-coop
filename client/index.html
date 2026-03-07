@@ -36,6 +36,8 @@
           <div><span>房间</span><strong id="roomCodeStatus">-</strong></div>
           <div><span>阶段</span><strong id="phaseStatus">lobby</strong></div>
           <div><span>计时</span><strong id="timerStatus">18:00</strong></div>
+          <div><span>延迟</span><strong id="pingStatus">-</strong></div>
+          <div><span>节点</span><strong id="objectiveStatus">0/0</strong></div>
         </div>
 
         <div class="panel-card">
@@ -51,14 +53,19 @@
 
       <main class="viewport-shell">
         <canvas id="gameCanvas"></canvas>
+        <div id="eventBanner" class="event-banner is-hidden" aria-live="polite"></div>
+        <div class="crosshair" aria-hidden="true"></div>
         <div class="center-overlay">
-          <p>W/A/S/D 控制移动 · 双人 Ready 自动开局</p>
+          <p>W/A/S/D 移动 · E 激活节点 · 双人 Ready 自动开局</p>
         </div>
         <div id="touchPad" class="touch-pad" aria-label="Touch controls">
           <button data-dir="up">▲</button>
           <button data-dir="left">◀</button>
           <button data-dir="right">▶</button>
           <button data-dir="down">▼</button>
+        </div>
+        <div class="touch-actions">
+          <button id="touchInteractBtn" class="touch-interact">E</button>
         </div>
       </main>
     </div>

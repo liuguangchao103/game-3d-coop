@@ -4,6 +4,7 @@ import {
   ROOM_CODE_CHARS,
   ROOM_CODE_LENGTH,
   type InputState,
+  type ObjectiveView,
   type PlayerView,
   type RoomPhase
 } from "@game/shared";
@@ -28,6 +29,7 @@ export interface RoomRuntime {
   tick: number;
   createdAt: number;
   players: Map<string, PlayerRuntime>;
+  objectives: ObjectiveView[];
 }
 
 const EMPTY_INPUT: InputState = {
@@ -65,6 +67,33 @@ function cloneInputState(input: InputState): InputState {
   };
 }
 
+function createSeededRandom(seed: number): () => number {
+  let value = seed >>> 0;
+  return () => {
+    value = (value * 1664525 + 1013904223) >>> 0;
+    return value / 0x100000000;
+  };
+}
+
+function generateObjectives(seed: number, stage: number): ObjectiveView[] {
+  const random = createSeededRandom(seed + stage * 1337);
+  const objectives: ObjectiveView[] = [];
+
+  for (let i = 0; i < 3; i += 1) {
+    const angle = random() * Math.PI * 2;
+    const radius = 7 + random() * 8;
+    objectives.push({
+      id: `S${stage}-N${i + 1}`,
+      state: i === 0 ? "active" : "idle",
+      x: Math.cos(angle) * radius,
+      y: 0,
+      z: Math.sin(angle) * radius
+    });
+  }
+
+  return objectives;
+}
+
 export class RoomManager {
   private readonly rooms = new Map<string, RoomRuntime>();
 
@@ -94,7 +123,8 @@ export class RoomManager {
       seed: Math.floor(Math.random() * 1_000_000_000),
       tick: 0,
       createdAt: Date.now(),
-      players: new Map()
+      players: new Map(),
+      objectives: []
     };
 
     const player = this.createPlayer(playerId, name, ws, 0);
@@ -197,6 +227,7 @@ export class RoomManager {
     room.stage = 1;
     room.tick = 0;
     room.timeLeft = GAME_TIME_LIMIT_SECONDS;
+    room.objectives = generateObjectives(room.seed, room.stage);
     return true;
   }
 

@@ -23,9 +23,13 @@ const ui = {
   roomCodeStatus: elementById<HTMLElement>("roomCodeStatus"),
   phaseStatus: elementById<HTMLElement>("phaseStatus"),
   timerStatus: elementById<HTMLElement>("timerStatus"),
+  pingStatus: elementById<HTMLElement>("pingStatus"),
+  objectiveStatus: elementById<HTMLElement>("objectiveStatus"),
   playerList: elementById<HTMLUListElement>("playerList"),
   eventLog: elementById<HTMLElement>("eventLog"),
   touchPad: elementById<HTMLElement>("touchPad"),
+  touchInteractBtn: elementById<HTMLButtonElement>("touchInteractBtn"),
+  eventBanner: elementById<HTMLElement>("eventBanner"),
   gameCanvas: elementById<HTMLCanvasElement>("gameCanvas")
 };
 
@@ -42,6 +46,9 @@ const state = {
   phase: "lobby" as "lobby" | "running" | "ended",
   stage: 1,
   timeLeft: 18 * 60,
+  pingMs: 0,
+  objectiveDone: 0,
+  objectiveTotal: 0,
   players: [] as Array<{ id: string; name: string; ready: boolean }>,
   logLines: [] as string[]
 };
@@ -53,9 +60,16 @@ const movement = {
   right: false
 };
 
+const actions = {
+  dash: false,
+  interact: false
+};
+
 let inputSeq = 0;
 let lastInputAt = performance.now();
 let reconnectTimer: number | null = null;
+let bannerTimer: number | null = null;
+let lastAimYaw = 0;
 
 function normalizeName(value: string): string {
   const sanitized = value.trim().slice(0, 20);
@@ -94,15 +108,37 @@ function formatTimer(seconds: number): string {
 function addLog(line: string): void {
   const timestamp = new Date().toLocaleTimeString("zh-CN", { hour12: false });
   state.logLines.unshift(`[${timestamp}] ${line}`);
-  state.logLines = state.logLines.slice(0, 14);
+  state.logLines = state.logLines.slice(0, 18);
   ui.eventLog.textContent = state.logLines.join("\n");
+}
+
+function showBanner(text: string, tone: "neutral" | "success" | "danger" = "neutral"): void {
+  if (bannerTimer) {
+    window.clearTimeout(bannerTimer);
+  }
+
+  ui.eventBanner.textContent = text;
+  ui.eventBanner.classList.remove("tone-neutral", "tone-success", "tone-danger", "is-hidden");
+  ui.eventBanner.classList.add(`tone-${tone}`);
+
+  bannerTimer = window.setTimeout(() => {
+    ui.eventBanner.classList.add("is-hidden");
+  }, 2200);
 }
 
 function refreshHud(): void {
   ui.connStatus.textContent = state.connected ? "Connected" : "Disconnected";
+  ui.connStatus.classList.toggle("status-ok", state.connected);
+  ui.connStatus.classList.toggle("status-bad", !state.connected);
+
   ui.roomCodeStatus.textContent = state.roomCode;
   ui.phaseStatus.textContent = `${state.phase} · S${state.stage}`;
   ui.timerStatus.textContent = formatTimer(state.timeLeft);
+  ui.pingStatus.textContent = state.connected ? `${Math.round(state.pingMs)} ms` : "-";
+  ui.objectiveStatus.textContent = `${state.objectiveDone}/${state.objectiveTotal}`;
+
+  ui.timerStatus.classList.toggle("timer-danger", state.timeLeft <= 30);
+  ui.timerStatus.classList.toggle("timer-warning", state.timeLeft > 30 && state.timeLeft <= 90);
 
   const me = state.players.find((player) => player.id === state.playerId);
   const canToggleReady = state.connected && state.playerId.length > 0 && state.phase === "lobby";
@@ -148,6 +184,23 @@ function toggleReady(): void {
   send({ t: "room.ready", ready: nextReady });
 }
 
+function eventText(message: Extract<S2CMessage, { t: "event" }>): { text: string; tone: "neutral" | "success" | "danger" } {
+  switch (message.kind) {
+    case "nodeActivated": {
+      const who = typeof message.payload.by === "string" ? message.payload.by : "队友";
+      return { text: `节点已激活 · ${who}`, tone: "success" };
+    }
+    case "victory":
+      return { text: "任务完成，成功撤离", tone: "success" };
+    case "gameOver":
+      return { text: "任务失败，行动终止", tone: "danger" };
+    case "stageClear":
+      return { text: "行动开始，前往激活节点", tone: "neutral" };
+    default:
+      return { text: `事件: ${message.kind}`, tone: "neutral" };
+  }
+}
+
 function handleMessage(message: S2CMessage): void {
   switch (message.t) {
     case "room.created": {
@@ -172,25 +225,35 @@ function handleMessage(message: S2CMessage): void {
       state.phase = message.phase;
       state.timeLeft = message.timeLeft;
       state.stage = message.stage;
+      if (message.phase === "running") {
+        showBanner("双人行动开始", "neutral");
+      }
       break;
     }
 
     case "snapshot": {
       scene.syncPlayers(message.players);
+      scene.syncObjectives(message.objectives);
+      state.objectiveTotal = message.objectives.length;
+      state.objectiveDone = message.objectives.filter((objective) => objective.state === "done").length;
       break;
     }
 
     case "event": {
-      addLog(`事件: ${message.kind}`);
+      const { text, tone } = eventText(message);
+      addLog(text);
+      showBanner(text, tone);
       break;
     }
 
     case "error": {
       addLog(`错误 ${message.code}: ${message.message}`);
+      showBanner(`错误: ${message.message}`, "danger");
       break;
     }
 
     case "pong": {
+      state.pingMs = Math.max(0, Date.now() - message.ts);
       break;
     }
   }
@@ -206,6 +269,7 @@ socket.onOpen(() => {
 
 socket.onClose(() => {
   state.connected = false;
+  state.pingMs = 0;
   addLog("连接已断开，1.5 秒后自动重连。");
   refreshHud();
 
@@ -228,6 +292,9 @@ socket.onMessage((message) => {
 ui.createRoomBtn.addEventListener("click", () => sendCreateRoom());
 ui.joinRoomBtn.addEventListener("click", () => sendJoinRoom());
 ui.readyBtn.addEventListener("click", () => toggleReady());
+ui.roomCodeInput.addEventListener("input", () => {
+  ui.roomCodeInput.value = roomCode(ui.roomCodeInput.value);
+});
 
 const keyToDirection: Record<string, keyof typeof movement> = {
   w: "up",
@@ -241,39 +308,91 @@ const keyToDirection: Record<string, keyof typeof movement> = {
 };
 
 window.addEventListener("keydown", (event) => {
-  const dir = keyToDirection[event.key.toLowerCase()];
-  if (!dir) {
+  const key = event.key.toLowerCase();
+  const dir = keyToDirection[key];
+  if (dir) {
+    movement[dir] = true;
     return;
   }
-  movement[dir] = true;
+
+  if (key === "shift") {
+    actions.dash = true;
+    return;
+  }
+
+  if (key === "e") {
+    actions.interact = true;
+  }
 });
 
 window.addEventListener("keyup", (event) => {
-  const dir = keyToDirection[event.key.toLowerCase()];
-  if (!dir) {
+  const key = event.key.toLowerCase();
+  const dir = keyToDirection[key];
+  if (dir) {
+    movement[dir] = false;
     return;
   }
-  movement[dir] = false;
+
+  if (key === "shift") {
+    actions.dash = false;
+    return;
+  }
+
+  if (key === "e") {
+    actions.interact = false;
+  }
 });
+
+window.addEventListener("blur", () => {
+  movement.up = false;
+  movement.down = false;
+  movement.left = false;
+  movement.right = false;
+  actions.dash = false;
+  actions.interact = false;
+});
+
+function bindHoldButton(button: HTMLButtonElement, onStart: () => void, onEnd: () => void): void {
+  const start = (event: Event) => {
+    event.preventDefault();
+    button.classList.add("is-active");
+    onStart();
+  };
+
+  const end = (event: Event) => {
+    event.preventDefault();
+    button.classList.remove("is-active");
+    onEnd();
+  };
+
+  button.addEventListener("pointerdown", start);
+  button.addEventListener("pointerup", end);
+  button.addEventListener("pointercancel", end);
+  button.addEventListener("pointerleave", end);
+}
 
 for (const button of ui.touchPad.querySelectorAll<HTMLButtonElement>("button[data-dir]")) {
   const dir = button.dataset.dir as keyof typeof movement;
-
-  const onDown = (event: Event) => {
-    event.preventDefault();
-    movement[dir] = true;
-  };
-
-  const onUp = (event: Event) => {
-    event.preventDefault();
-    movement[dir] = false;
-  };
-
-  button.addEventListener("pointerdown", onDown);
-  button.addEventListener("pointerup", onUp);
-  button.addEventListener("pointercancel", onUp);
-  button.addEventListener("pointerleave", onUp);
+  bindHoldButton(
+    button,
+    () => {
+      movement[dir] = true;
+    },
+    () => {
+      movement[dir] = false;
+    }
+  );
 }
+
+bindHoldButton(
+  ui.touchInteractBtn,
+  () => {
+    actions.interact = true;
+  },
+  () => {
+    actions.interact = false;
+  }
+);
 
 setInterval(() => {
   if (!socket.isOpen() || !state.playerId || state.phase !== "running") {
@@ -285,7 +404,9 @@ setInterval(() => {
   const dt = Math.min(0.1, (now - lastInputAt) / 1000);
   lastInputAt = now;
 
-  const lookYaw = Math.abs(move.moveX) + Math.abs(move.moveY) > 0 ? Math.atan2(move.moveX, move.moveY) : 0;
+  if (Math.abs(move.moveX) + Math.abs(move.moveY) > 0.001) {
+    lastAimYaw = Math.atan2(move.moveX, move.moveY);
+  }
 
   send({
     t: "input.state",
@@ -293,11 +414,11 @@ setInterval(() => {
     dt,
     moveX: move.moveX,
     moveY: move.moveY,
-    lookYaw,
+    lookYaw: lastAimYaw,
     lookPitch: 0,
     fire: false,
-    dash: false,
-    interact: false
+    dash: actions.dash,
+    interact: actions.interact
   });
   inputSeq += 1;
 }, 50);
@@ -307,7 +428,7 @@ setInterval(() => {
     return;
   }
   send({ t: "ping", ts: Date.now() });
-}, 5000);
+}, 3000);
 
 let prev = performance.now();
 function animate(now: number): void {
@@ -327,5 +448,5 @@ function animate(now: number): void {
 
 socket.connect(wsUrl);
 refreshHud();
-addLog("按 W/A/S/D 移动，双人都点击准备后开局。\n若连接失败请先启动 server。");
+addLog("W/A/S/D 移动，E 激活目标节点。若连接失败请先启动 server。");
 requestAnimationFrame(animate);
