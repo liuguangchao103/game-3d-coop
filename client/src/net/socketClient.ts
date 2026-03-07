@@ -26,6 +26,7 @@ export class SocketClient {
 
     this.ws.addEventListener("close", (event) => {
       this.closeListeners.forEach((listener) => listener(event));
+      this.ws = null;
     });
 
     this.ws.addEventListener("message", (event) => {
@@ -51,6 +52,14 @@ export class SocketClient {
 
   isOpen(): boolean {
     return this.ws?.readyState === WebSocket.OPEN;
+  }
+
+  disconnect(): void {
+    if (!this.ws) {
+      return;
+    }
+    this.ws.close(1000, "client disconnect");
+    this.ws = null;
   }
 
   onOpen(listener: Listener<void>): () => void {

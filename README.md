@@ -28,6 +28,14 @@ npm run dev:client
 - Both click ready
 - Use `W/A/S/D` to move, press `E` near highlighted objective pillars to activate nodes
 
+## Solo Campaign Mode
+
+- In the left panel switch mode to `单机主线`
+- Click `开始单机主线`
+- Follow chapter clues to activate nodes in the correct order
+- Wrong activations reduce timer and raise noise level
+- Final chapter requires activating the extraction gate after calibration
+
 ## Current Play Loop (v0.1+ detail pass)
 
 - Two players in one room

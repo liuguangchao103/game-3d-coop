@@ -9,12 +9,20 @@
     <div id="app">
       <aside class="control-panel" aria-label="Lobby and controls">
         <div class="brand-block">
-          <p class="eyebrow">CO-OP EXTRACTION</p>
+          <p class="eyebrow">TACTICAL STORY OPS</p>
           <h1>Shadow Breach</h1>
-          <p class="subtitle">Dark-zone two-player tactical trial</p>
+          <p class="subtitle">Co-op raid + solo campaign in one battlefield</p>
         </div>
 
-        <div class="panel-card">
+        <div class="panel-card mode-card">
+          <p class="panel-title">模式</p>
+          <div class="button-row mode-row">
+            <button id="modeCoopBtn" class="btn mode-btn is-active">在线协作</button>
+            <button id="modeStoryBtn" class="btn mode-btn">单机主线</button>
+          </div>
+        </div>
+
+        <div id="coopControls" class="panel-card">
           <label for="playerName">代号</label>
           <input id="playerName" maxlength="20" placeholder="输入你的代号" value="Operator" />
 
@@ -28,6 +36,19 @@
 
           <div class="button-row">
             <button id="readyBtn" class="btn ready" disabled>准备</button>
+          </div>
+        </div>
+
+        <div id="storyControls" class="panel-card hidden">
+          <p class="panel-title">主线任务</p>
+          <p id="storyChapterTitle" class="story-chapter">章节：未开始</p>
+          <p id="storyMissionTitle" class="story-mission">任务：-</p>
+          <p id="storyBrief" class="story-brief">切换到单机后可直接开始主线闯关。</p>
+          <p id="storyClue" class="story-clue">提示：顺序线索会在这里展示。</p>
+          <p id="storyProgress" class="story-progress">进度：-</p>
+
+          <div class="button-row">
+            <button id="startStoryBtn" class="btn accent">开始单机主线</button>
           </div>
         </div>
 
@@ -56,7 +77,7 @@
         <div id="eventBanner" class="event-banner is-hidden" aria-live="polite"></div>
         <div class="crosshair" aria-hidden="true"></div>
         <div class="center-overlay">
-          <p>W/A/S/D 移动 · E 激活节点 · 双人 Ready 自动开局</p>
+          <p id="hintText">W/A/S/D 移动 · E 激活节点 · 双人 Ready 自动开局</p>
         </div>
         <div id="touchPad" class="touch-pad" aria-label="Touch controls">
           <button data-dir="up">▲</button>

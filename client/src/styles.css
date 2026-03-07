@@ -90,6 +90,10 @@ body {
   box-shadow: var(--shadow-panel);
 }
 
+.hidden {
+  display: none;
+}
+
 .panel-card label {
   display: block;
   margin-bottom: 6px;
@@ -150,6 +154,20 @@ body {
   background: linear-gradient(180deg, #4b3320, #312217);
 }
 
+.mode-row {
+  margin-bottom: 0;
+}
+
+.mode-btn {
+  border-color: rgba(108, 142, 176, 0.45);
+}
+
+.mode-btn.is-active {
+  border-color: rgba(255, 185, 107, 0.75);
+  background: linear-gradient(180deg, #3c2c1f, #281f17);
+  color: #ffd8ac;
+}
+
 .status-list {
   display: grid;
   gap: 10px;
@@ -181,6 +199,41 @@ body {
   font-size: 13px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.story-chapter {
+  margin: 0 0 8px;
+  font-weight: 700;
+  font-size: 14px;
+  color: #dce8f7;
+}
+
+.story-mission {
+  margin: 0 0 8px;
+  color: #9cd4ff;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.story-brief,
+.story-clue,
+.story-progress {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.story-brief {
+  color: #c7d6e7;
+}
+
+.story-clue {
+  color: #ffd59f;
+}
+
+.story-progress {
+  color: #9de3b9;
+  margin-bottom: 14px;
 }
 
 .player-list {
